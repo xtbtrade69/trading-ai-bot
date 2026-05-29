@@ -16,37 +16,31 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def send_telegram(text):
-
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-
     response = requests.post(
         url,
-        json={
-            "chat_id": CHAT_ID,
-            "text": text
-        }
+        json={"chat_id": CHAT_ID, "text": text},
+        timeout=10
     )
-
     print(response.text)
 
 
 def analyze_with_ai(data):
-
     prompt = f"""
-    Jesteś profesjonalnym traderem.
+Jesteś profesjonalnym traderem.
 
-    Oceń sygnał:
+Oceń sygnał:
+{data}
 
-    Instrument: {data['symbol']}
-    RSI: {data['rsi']}
-    Cena: {data['price']}
-    Timeframe: {data['timeframe']}
-
-    Zwróć:
-    - decyzję (LONG / SHORT / NO TRADE)
-    - ocenę 1-10
-    - krótkie uzasadnienie
-    """
+Zwróć:
+- decyzję LONG / SHORT / NO TRADE
+- ocenę 1-10
+- Entry
+- Stop Loss
+- Take Profit 1
+- Take Profit 2
+- krótkie uzasadnienie
+"""
 
     response = client.responses.create(
         model="gpt-4.1-mini",
@@ -58,14 +52,13 @@ def analyze_with_ai(data):
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-
     data = request.get_json(force=True, silent=True)
 
-if data is None:
-    data = request.form.to_dict()
+    if data is None:
+        data = request.form.to_dict()
 
-if not data:
-    data = {"raw": request.get_data(as_text=True)}
+    if not data:
+        data = {"raw": request.get_data(as_text=True)}
 
     ai_result = analyze_with_ai(data)
 
@@ -77,7 +70,12 @@ if not data:
 
     send_telegram(message)
 
-    return "OK"
+    return "OK", 200
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return "AI Trading Bot is running", 200
 
 
 if __name__ == "__main__":

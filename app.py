@@ -59,7 +59,13 @@ def analyze_with_ai(data):
 @app.route("/webhook", methods=["POST"])
 def webhook():
 
-    data = request.json
+    data = request.get_json(force=True, silent=True)
+
+if data is None:
+    data = request.form.to_dict()
+
+if not data:
+    data = {"raw": request.get_data(as_text=True)}
 
     ai_result = analyze_with_ai(data)
 
